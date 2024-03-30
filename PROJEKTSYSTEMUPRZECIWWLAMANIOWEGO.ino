@@ -29,6 +29,7 @@ bool armed = false;
 byte index = 0;
 
 void setup() {
+  // tutaj dałem INPUT_PULLUP żeby nie dawać rezystorów tylko używać tego juz wbudowanego w Arduino
   pinMode(DRZWI_KONTAKTRON, INPUT_PULLUP);
   pinMode(OKNO_1_KONTAKTRON, INPUT_PULLUP);
   pinMode(OKNO_2_KONTAKTRON, INPUT_PULLUP);
@@ -45,7 +46,7 @@ void setup() {
 }
 
 void loop() {
-
+// odczytywanie stanów z kontaktronów co 100ms  
   int DRZWI = digitalRead(DRZWI_KONTAKTRON);
   delay(100);
   int OKNO_1 = digitalRead(OKNO_1_KONTAKTRON);
@@ -57,32 +58,19 @@ void loop() {
   if (!armed) {
     display.clearDisplay();
     display.setCursor(0, 0);
-    display.println("# Ubzroj alarm");
+    display.println("kliknij # i  ubzroj alarm");
     display.display();
-
-
-    
   }
   if (armed) {
     display.clearDisplay();
     display.setCursor(0, 0);
-    display.println("* Rozbroj alarm");
+    display.println("kliknij * i  rozbroj alarm");
     display.display();
   }
 
 
-
-//  if (key != NO_KEY && key = '#') {
-  //  if (index < 4) {
-   //   enteredCode[index++] = key;
-   //   display.clearDisplay();
-   //   display.setCursor(0,0);
-   //   display.print("*");
-   //   display.display();
-//    }
-//  }
-
-if (key == '#' && !armed) {
+  // uzcie # na klawiaturze jako ubzrajanie alarmu
+  if (key == '#' && !armed) {
     display.clearDisplay();
     display.setCursor(0, 0);
     display.println("Wpisz kod:");
@@ -92,7 +80,7 @@ if (key == '#' && !armed) {
       key = keypad.getKey();
       if (key != NO_KEY && key != '#') {
         enteredCode[index++] = key;
-        display.print("*");
+        display.print("*"); // Pokazywanie gwiazdek zamiast cyfr podczas wpisywania kodu
         display.display();
       }
     }
@@ -100,7 +88,7 @@ if (key == '#' && !armed) {
     index = 0;
     delay(300);
     if (strcmp(enteredCode, correctCode) == 0) {
-      armAlarm();
+      armAlarm(); 
     } else {
       display.clearDisplay();
       display.setCursor(0, 0);
@@ -111,7 +99,7 @@ if (key == '#' && !armed) {
       display.display();
     }
   }
-
+// uzcie * na klawiaturze jako rozbrojenie alarmu
   if (key == '*' && armed) {
     display.clearDisplay();
     display.setCursor(0, 0);
@@ -122,7 +110,7 @@ if (key == '#' && !armed) {
       key = keypad.getKey();
       if (key != NO_KEY && key != '#') {
         enteredCode[index++] = key;
-        display.print("*");
+        display.print("*"); // Pokazywanie gwiazdek zamiast cyfr podczas wpisywania kodu
         display.display();
       }
     }
@@ -141,15 +129,16 @@ if (key == '#' && !armed) {
       display.display();
     }
   }
-
+// Wykrywanie ruchu
   if (armed && digitalRead(PIR) == HIGH) {
     display.clearDisplay();
     display.setCursor(0, 0);
-    display.println("Wykryto ruch!");
+    display.println("Pan złodzieii!");
     display.display();
     activateAlarm();
   }
 
+// wykrywanie otwartych dzrwi / okien
   if (armed && (DRZWI == 1 || OKNO_1 == 1 || OKNO_2 == 1)) {
     display.clearDisplay();
     display.setCursor(0, 0);
@@ -161,6 +150,16 @@ if (key == '#' && !armed) {
 
 void disarmAlarm() {
   armed = false;
+    for (int i = 0; i < 5; i++) {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("Rozbrajanie");
+    for (int j = 0; j <= i; j++) {
+      display.print(".");
+    }
+    display.display();
+    delay(500);
+  }
   digitalWrite(BUZZER, HIGH);
   digitalWrite(LED, LOW);
   display.clearDisplay();
