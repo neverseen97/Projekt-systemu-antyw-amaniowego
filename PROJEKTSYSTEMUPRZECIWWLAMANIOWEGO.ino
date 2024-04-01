@@ -46,7 +46,7 @@ void setup() {
 }
 
 void loop() {
-// odczytywanie stanów z kontaktronów co 100ms  
+  // odczytywanie stanów z kontaktronów co 100ms  
   int DRZWI = digitalRead(DRZWI_KONTAKTRON);
   delay(100);
   int OKNO_1 = digitalRead(OKNO_1_KONTAKTRON);
@@ -78,7 +78,7 @@ void loop() {
     index = 0;
     while (index < 4) {
       key = keypad.getKey();
-      if (key != NO_KEY && key != '#') {
+      if (key != NO_KEY && key != '#' && key != '*') {
         enteredCode[index++] = key;
         display.print("*"); // Pokazywanie gwiazdek zamiast cyfr podczas wpisywania kodu
         display.display();
@@ -88,6 +88,11 @@ void loop() {
     index = 0;
     delay(300);
     if (strcmp(enteredCode, correctCode) == 0) {
+      // Po wpisaniu kodu sprawdzamy, czy został naciśnięty '#'
+      while (key != '#') {
+        key = keypad.getKey();
+        delay(100);
+      }
       armAlarm(); 
     } else {
       display.clearDisplay();
@@ -99,7 +104,7 @@ void loop() {
       display.display();
     }
   }
-// uzcie * na klawiaturze jako rozbrojenie alarmu
+  // uzcie * na klawiaturze jako rozbrojenie alarmu
   if (key == '*' && armed) {
     display.clearDisplay();
     display.setCursor(0, 0);
@@ -108,7 +113,7 @@ void loop() {
     index = 0;
     while (index < 4) {
       key = keypad.getKey();
-      if (key != NO_KEY && key != '#') {
+      if (key != NO_KEY && key != '#' && key != '*') {
         enteredCode[index++] = key;
         display.print("*"); // Pokazywanie gwiazdek zamiast cyfr podczas wpisywania kodu
         display.display();
@@ -118,6 +123,11 @@ void loop() {
     index = 0;
     delay(300);
     if (strcmp(enteredCode, correctCode) == 0) {
+      // Po wpisaniu kodu sprawdzamy, czy został naciśnięty '#'
+      while (key != '#') {
+        key = keypad.getKey();
+        delay(100);
+      }
       disarmAlarm();
     } else {
       display.clearDisplay();
@@ -129,7 +139,7 @@ void loop() {
       display.display();
     }
   }
-// Wykrywanie ruchu
+  // Wykrywanie ruchu
   if (armed && digitalRead(PIR) == HIGH) {
     display.clearDisplay();
     display.setCursor(0, 0);
@@ -138,7 +148,7 @@ void loop() {
     activateAlarm();
   }
 
-// wykrywanie otwartych dzrwi / okien
+  // wykrywanie otwartych dzrwi / okien
   if (armed && (DRZWI == 1 || OKNO_1 == 1 || OKNO_2 == 1)) {
     display.clearDisplay();
     display.setCursor(0, 0);
