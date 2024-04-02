@@ -28,7 +28,9 @@ char enteredCode[20];
 bool armed = false;
 byte index = 0;
 
+
 void setup() {
+
   EEPROM.get(0, currentCode);
 
   if (strlen(currentCode) == 0) {
@@ -47,6 +49,8 @@ void setup() {
   display.clearDisplay();
   display.display();
   Serial.begin(9600);
+  Serial.println("Aktualny kod: ");
+  Serial.println(currentCode);
   digitalWrite(BUZZER, HIGH);
   digitalWrite(LED, LOW);
 }
@@ -54,10 +58,13 @@ void setup() {
 void loop() {
   int DRZWI = digitalRead(DRZWI_1_KONTAKTRON);
   delay(100);
+  int DRZWI_2 = digitalRead(DRZWI_2_KONTAKTRON);
+  delay(100);
   int OKNO_1 = digitalRead(OKNO_1_KONTAKTRON);
   delay(100);
   int OKNO_2 = digitalRead(OKNO_2_KONTAKTRON);
   delay(100);
+
   char key = keypad.getKey();
 
   if (!armed) {
@@ -104,7 +111,7 @@ void loop() {
     activateAlarm();
   }
 }
-
+// Funkcja do zmiany kodu
 void changeCode() {
   display.clearDisplay();
   display.setCursor(0, 0);
@@ -135,6 +142,8 @@ void changeCode() {
     display.println("Kod zmieniony!");
     display.display();
     delay(2000);
+    display.clearDisplay();
+    display.display();
   }
 }
 
@@ -168,6 +177,8 @@ void enterCodeAndDisarmAlarm() {
   }
 }
 
+
+// Funkcja do wpisywania kodu
 void enterCode() {
   display.clearDisplay();
   display.setCursor(0, 0);
@@ -189,10 +200,13 @@ void enterCode() {
   delay(300);
 }
 
+
 bool checkEnteredCode() {
-  return strcmp(enteredCode, currentCode) == 0;
+  return strcmp(enteredCode, currentCode) == 0; // strcmp sprawdza czy 2 zmienne są sobie równe
 }
 
+
+// funkcja do rozbrojenia alarmu
 void disarmAlarm() {
   armed = false;
   for (int i = 0; i < 5; i++) {
@@ -216,6 +230,8 @@ void disarmAlarm() {
   display.display();
 }
 
+
+// funkcja do uzbrojenia alarmu
 void armAlarm() {
   armed = true;
   for (int i = 0; i < 5; i++) {
@@ -237,6 +253,8 @@ void armAlarm() {
   display.display();
 }
 
+
+// jesli czujnik ruchu / kontaktrony się aktywują to wywoła się ta funkcja która powoduje że buzzer zaczyna drzeć pizde 
 void activateAlarm() {
   digitalWrite(BUZZER, LOW);
   digitalWrite(LED, HIGH);
