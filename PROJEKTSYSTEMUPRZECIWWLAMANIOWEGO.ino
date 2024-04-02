@@ -1,14 +1,15 @@
 #include <Adafruit_PCD8544.h>
 #include <Adafruit_GFX.h>
 #include <Keypad.h>
+#include <EEPROM.h> 
 
 const int PIR = A5;
 const int BUZZER = A3;
 const int LED = A4;
-#define DRZWI_KONTAKTRON A0
+#define DRZWI_1_KONTAKTRON A0
 #define OKNO_1_KONTAKTRON A1
 #define OKNO_2_KONTAKTRON A2
-
+#define DRZWI_2_KONTAKTRON A3
 Adafruit_PCD8544 display = Adafruit_PCD8544(9, 10, 11, 12, 13);
 
 const byte ROWS = 4;
@@ -22,15 +23,20 @@ char keys[ROWS][COLS] = {
 byte rowPins[ROWS] = { 2, 3, 4, 5 };
 byte colPins[COLS] = { 6, 7, 8 };
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
-
-const char *correctCode = "1234";
-char enteredCode[5];
+char currentCode[20];
+char enteredCode[20];
 bool armed = false;
 byte index = 0;
 
 void setup() {
-  // tutaj dałem INPUT_PULLUP żeby nie dawać rezystorów tylko używać tego juz wbudowanego w Arduino
-  pinMode(DRZWI_KONTAKTRON, INPUT_PULLUP);
+  EEPROM.get(0, currentCode);
+
+  if (strlen(currentCode) == 0) {
+    strcpy(currentCode, "1234");
+    EEPROM.put(0, currentCode);
+  }
+
+  pinMode(DRZWI_1_KONTAKTRON, INPUT_PULLUP);
   pinMode(OKNO_1_KONTAKTRON, INPUT_PULLUP);
   pinMode(OKNO_2_KONTAKTRON, INPUT_PULLUP);
   pinMode(PIR, INPUT);
@@ -46,8 +52,7 @@ void setup() {
 }
 
 void loop() {
-  // odczytywanie stanów z kontaktronów co 100ms  
-  int DRZWI = digitalRead(DRZWI_KONTAKTRON);
+  int DRZWI = digitalRead(DRZWI_1_KONTAKTRON);
   delay(100);
   int OKNO_1 = digitalRead(OKNO_1_KONTAKTRON);
   delay(100);
@@ -56,90 +61,33 @@ void loop() {
   char key = keypad.getKey();
 
   if (!armed) {
-    display.clearDisplay();
     display.setCursor(0, 0);
-    display.println("kliknij # i  ubzroj alarm");
+    display.println("kliknij # aby uzbroic alarm");
+    display.display();
+    display.setCursor(0, 20);
+    display.println("kliknij 1 aby zmienic kod");
     display.display();
   }
+
   if (armed) {
     display.clearDisplay();
     display.setCursor(0, 0);
-    display.println("kliknij * i  rozbroj alarm");
+    display.println("kliknij * aby rozbroic alarm");
     display.display();
   }
 
+  if  (key == '1' && !armed ) {
+    changeCode();
+  }
 
-  // uzcie # na klawiaturze jako ubzrajanie alarmu
   if (key == '#' && !armed) {
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.println("Wpisz kod:");
-    display.display();
-    index = 0;
-    while (index < 4) {
-      key = keypad.getKey();
-      if (key != NO_KEY && key != '#' && key != '*') {
-        enteredCode[index++] = key;
-        display.print("*"); // Pokazywanie gwiazdek zamiast cyfr podczas wpisywania kodu
-        display.display();
-      }
-    }
-    enteredCode[index] = '\0';
-    index = 0;
-    delay(300);
-    if (strcmp(enteredCode, correctCode) == 0) {
-      // Po wpisaniu kodu sprawdzamy, czy został naciśnięty '#'
-      while (key != '#') {
-        key = keypad.getKey();
-        delay(100);
-      }
-      armAlarm(); 
-    } else {
-      display.clearDisplay();
-      display.setCursor(0, 0);
-      display.println("Bledny kod!");
-      display.display();
-      delay(2000);
-      display.clearDisplay();
-      display.display();
-    }
+    enterCodeAndArmAlarm();
   }
-  // uzcie * na klawiaturze jako rozbrojenie alarmu
+
   if (key == '*' && armed) {
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.println("Wpisz kod:");
-    display.display();
-    index = 0;
-    while (index < 4) {
-      key = keypad.getKey();
-      if (key != NO_KEY && key != '#' && key != '*') {
-        enteredCode[index++] = key;
-        display.print("*"); // Pokazywanie gwiazdek zamiast cyfr podczas wpisywania kodu
-        display.display();
-      }
-    }
-    enteredCode[index] = '\0';
-    index = 0;
-    delay(300);
-    if (strcmp(enteredCode, correctCode) == 0) {
-      // Po wpisaniu kodu sprawdzamy, czy został naciśnięty '#'
-      while (key != '#') {
-        key = keypad.getKey();
-        delay(100);
-      }
-      disarmAlarm();
-    } else {
-      display.clearDisplay();
-      display.setCursor(0, 0);
-      display.println("Bledny kod!");
-      display.display();
-      delay(2000);
-      display.clearDisplay();
-      display.display();
-    }
+    enterCodeAndDisarmAlarm();
   }
-  // Wykrywanie ruchu
+
   if (armed && digitalRead(PIR) == HIGH) {
     display.clearDisplay();
     display.setCursor(0, 0);
@@ -148,7 +96,6 @@ void loop() {
     activateAlarm();
   }
 
-  // wykrywanie otwartych dzrwi / okien
   if (armed && (DRZWI == 1 || OKNO_1 == 1 || OKNO_2 == 1)) {
     display.clearDisplay();
     display.setCursor(0, 0);
@@ -158,9 +105,97 @@ void loop() {
   }
 }
 
+void changeCode() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("Wpisz nowy kod i naciśnij # ");
+  display.display();
+  byte index = 0;
+  char newCode[20];
+  char key;
+
+  while (index < sizeof(newCode) - 1) {
+    key = keypad.getKey();
+    if (key != NO_KEY && key != '#' && key != '*') {
+      newCode[index++] = key;
+      display.print("*");
+      display.display();
+    }
+    if (key == '#') {
+      newCode[index] = '\0';
+      break;
+    }
+  }
+
+  if (index > 0) {
+    strcpy(currentCode, newCode);
+    EEPROM.put(0, currentCode);
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("Kod zmieniony!");
+    display.display();
+    delay(2000);
+  }
+}
+
+void enterCodeAndArmAlarm() {
+  enterCode();
+  if (checkEnteredCode()) {
+    armAlarm();
+  } else {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("Bledny kod!");
+    display.display();
+    delay(2000);
+    display.clearDisplay();
+    display.display();
+  }
+}
+
+void enterCodeAndDisarmAlarm() {
+  enterCode();
+  if (checkEnteredCode()) {
+    disarmAlarm();
+  } else {
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("Bledny kod!");
+    display.display();
+    delay(2000);
+    display.clearDisplay();
+    display.display();
+  }
+}
+
+void enterCode() {
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("Wpisz kod i naciśnij # ");
+  display.display();
+  index = 0;
+  while (index < 20) {
+    char key = keypad.getKey();
+    if (key != NO_KEY && key != '#' && key != '*') {
+      enteredCode[index++] = key;
+      display.print("*");
+      display.display();
+    }
+    if (key == '#') {
+      enteredCode[index] = '\0';
+      break;
+    }
+  }
+  delay(300);
+}
+
+bool checkEnteredCode() {
+  return strcmp(enteredCode, currentCode) == 0;
+}
+
 void disarmAlarm() {
   armed = false;
-    for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 5; i++) {
     display.clearDisplay();
     display.setCursor(0, 0);
     display.println("Rozbrajanie");
@@ -207,3 +242,7 @@ void activateAlarm() {
   digitalWrite(LED, HIGH);
   delay(200);
 }
+
+
+
+
