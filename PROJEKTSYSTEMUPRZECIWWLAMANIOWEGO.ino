@@ -1,14 +1,15 @@
 #include <Adafruit_PCD8544.h>
 #include <Adafruit_GFX.h>
+
 #include <Keypad.h>
 #include <EEPROM.h> 
 
 const int PIR = A5;
 const int BUZZER = A3;
 const int LED = A4;
-#define DRZWI_1_KONTAKTRON A0
+#define DRZWI_1_KONTAKTRON A2
 #define OKNO_1_KONTAKTRON A1
-#define OKNO_2_KONTAKTRON A2
+#define OKNO_2_KONTAKTRON A0
 #define DRZWI_2_KONTAKTRON A3
 Adafruit_PCD8544 display = Adafruit_PCD8544(9, 10, 11, 12, 13);
 
@@ -28,9 +29,8 @@ char enteredCode[20];
 bool armed = false;
 byte index = 0;
 
-
 void setup() {
-
+  
   EEPROM.get(0, currentCode);
 
   if (strlen(currentCode) == 0) {
@@ -49,7 +49,7 @@ void setup() {
   display.clearDisplay();
   display.display();
   Serial.begin(9600);
-  Serial.println("Aktualny kod: ");
+  Serial.print("Aktualny kod: ");
   Serial.println(currentCode);
   digitalWrite(BUZZER, HIGH);
   digitalWrite(LED, LOW);
@@ -98,16 +98,28 @@ void loop() {
   if (armed && digitalRead(PIR) == HIGH) {
     display.clearDisplay();
     display.setCursor(0, 0);
-    display.println("Pan złodzieii!");
+    display.println("Pan złodzieij!");
     display.display();
+    Serial.println("Pan złodzieij!");
+    Serial.println("Czujnik PIR wykryl ruch");
     activateAlarm();
   }
 
-  if (armed && (DRZWI == 1 || OKNO_1 == 1 || OKNO_2 == 1)) {
+  if (armed && (DRZWI || OKNO_1 || OKNO_2)) {
+    
+    if (armed && DRZWI) {
+      Serial.println("Otwarte DRZWI");
+    } else if (armed && OKNO_1) {
+      Serial.println("Otwarte OKNO 1");
+    } else if (armed && OKNO_2) {
+      Serial.println("Otwarte OKNO 2");
+    } 
+    
     display.clearDisplay();
     display.setCursor(0, 0);
     display.println("Pan zlodziej!");
     display.display();
+    Serial.println("Pan zlodziej!");
     activateAlarm();
   }
 }
@@ -141,6 +153,7 @@ void changeCode() {
     display.setCursor(0, 0);
     display.println("Kod zmieniony!");
     display.display();
+    Serial.println("Kod zostal zmieniony\n");
     delay(2000);
     display.clearDisplay();
     display.display();
@@ -155,6 +168,7 @@ void enterCodeAndArmAlarm() {
     display.clearDisplay();
     display.setCursor(0, 0);
     display.println("Bledny kod!");
+    Serial.println("Wprowadzono bledny kod\n");
     display.display();
     delay(2000);
     display.clearDisplay();
@@ -170,6 +184,7 @@ void enterCodeAndDisarmAlarm() {
     display.clearDisplay();
     display.setCursor(0, 0);
     display.println("Bledny kod!");
+    Serial.println("Wprowadzono bledny kod\n");
     display.display();
     delay(2000);
     display.clearDisplay();
@@ -225,6 +240,7 @@ void disarmAlarm() {
   display.setCursor(0, 0);
   display.println("Alarm rozbrojony");
   display.display();
+  Serial.println("Alarm zostal rozbrojony\n");
   delay(2000);
   display.clearDisplay();
   display.display();
@@ -248,6 +264,7 @@ void armAlarm() {
   display.setCursor(0, 0);
   display.println("Alarm uzbrojony");
   display.display();
+  Serial.println("Alarm zostal uzbrojony\n");
   delay(2000);
   display.clearDisplay();
   display.display();
@@ -260,7 +277,3 @@ void activateAlarm() {
   digitalWrite(LED, HIGH);
   delay(200);
 }
-
-
-
-
