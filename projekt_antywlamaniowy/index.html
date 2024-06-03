@@ -17,32 +17,69 @@
 		</div>
 		<div class="row">
 			<section class="col-sm-12 col-md-6">
-			<a href="file:///E:\Documents\Arduino\system_antywlamaniowy\Projekt-systemu-antyw-amaniowego\PROJEKTSYSTEMUPRZECIWWLAMANIOWEGO/logs.log" target="_blank">
-				<h1>
-					Logi
-				</h1>
-			</a>
+				<a href="logs.log" target="_blank">
+					<h1>
+						Logi
+					</h1>
+				</a>
 			</section>
 			<section class="col-sm-12 col-md-6">
-				<h1>
+				<h1 id="statystyki">
 					Statystyki
 				</h1>
+				<div id="wyniki">
+					<!-- Wyniki będą wyświetlane tutaj -->
+				</div>
 			</section>			
 		</div>
 		<div class="row">
 			<footer class="col-12">
-			Paweł Mańka, Franciszek Niedziela, Tomasz Salwiczek<br />
-			2024 &copy; Wszelkie prawa zastrzeżone
+				Paweł Mańka, Franciszek Niedziela, Tomasz Salwiczek<br />
+				2024 &copy; Wszelkie prawa zastrzeżone
 			</footer>
 		</div>	
 	</div>
 	
-	
-
 	<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-	
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
-	
 	<script src="js/bootstrap.min.js"></script>
+
+	<script>
+		document.getElementById('statystyki').addEventListener('click', function() {
+			console.log('Nagłówek "Statystyki" został kliknięty.');
+			fetch('logs.log')
+				.then(response => {
+					if (!response.ok) {
+						throw new Error('Network response was not ok ' + response.statusText);
+					}
+					return response.text();
+				})
+				.then(data => {
+					console.log('Zawartość pliku logs.log:', data);
+					const logLines = data.split('\n');
+					let window1Count = 0;
+					let window2Count = 0;
+					let doorCount = 0;
+
+					logLines.forEach(line => {
+						if (line.includes('otwarte okno 1')) {
+							window1Count++;
+						} else if (line.includes('otwarte okno 2')) {
+							window2Count++;
+						} else if (line.includes('otwarte drzwi')) {
+							doorCount++;
+						}
+					});
+
+					document.getElementById('wyniki').innerHTML = `
+						<p>Okno 1 otwarte: ${window1Count} razy</p>
+						<p>Okno 2 otwarte: ${window2Count} razy</p>
+						<p>Drzwi otwarte: ${doorCount} razy</p>
+					`;
+				})
+				.catch(error => console.error('Błąd przy pobieraniu logów:', error));
+		});
+	</script>
+
 </body>
 </html>
